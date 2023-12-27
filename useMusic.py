@@ -10,6 +10,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import random
+from keras import backend as K
 
 longueur = 80000
 diminution = 5
@@ -21,11 +22,11 @@ np.set_printoptions(threshold=np.inf)  # Cela permet d'afficher l'intégralité 
 
 def sampling(args):
     z_mean, z_log_var = args
-    batch = keras.backend.shape(z_mean)[0]
-    dim = keras.backend.int_shape(z_mean)[1]
-    epsilon = keras.backend.random_normal(shape=(batch, dim))
-    return z_mean + keras.backend.exp(0.5 * z_log_var) * epsilon
- 
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    epsilon = K.random_normal(shape=(batch, dim))
+    return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
 def play(data):
     global samplerate
     print(samplerate)
@@ -107,9 +108,8 @@ pourcentage_data_test =  0.2
 pourcentage_data_evaluate =  0.0
 
 
-batch_size = 1 #touchez pas à ça c'est pété jsp pk
-
-epochs = 1
+batch_size = 1
+epochs = 1  
 
 
 taille_data_train = int(data_size * pourcentage_data_train)
@@ -138,6 +138,9 @@ target_evaluate = np.array(target_evaluate)
 print("-----------")
 print(data_train.shape)
 
+nomModel = input("nom modele a utiliser: ")
+
+weights_path = 'models/' + nomModel + '.h5'
 
 latent_dim = 3
 
@@ -176,45 +179,8 @@ vae_loss = keras.backend.mean(xent_loss + kl_loss)
 
 vae.add_loss(vae_loss)
 vae.compile(optimizer="adam")
+vae.load_weights(weights_path)
 
-
-# nomModel = input("nom du modele a save: ")
-# callback_bestmodel = tf.keras.callbacks.ModelCheckpoint(filepath='models/' + nomModel + '.h5',
-#                                                         verbose = 0, save_best_only=True)
-nomModel = input("nom du modele a save: ")
-weights_path = 'models/' + nomModel + '.h5'
-callback_save_weights = tf.keras.callbacks.ModelCheckpoint(weights_path, save_weights_only=True, verbose=1)
-
-
-history = vae.fit(data_train, target_train,
-                 batch_size = batch_size,
-                 epochs = epochs,
-                 verbose = 1,
-                 validation_data = (data_test, target_test),
-                 callbacks = callback_save_weights
-                 )
-
-
-loss_curve = history.history["loss"]
-val_loss_curve = history.history["val_loss"]
-# acc_curve = history.history["accuracy"]
-# val_acc_curve = history.history["val_accuracy"]
-
-#faut que les 2 courbe descende bien si val_loss_curve > loss_curve alors c'est overfit faut mettre 
-# + de data ou ajouter des couches au model 
-# pour ajouter des couches, vous faite pas chier tu clic sur la ligne 128 par exemple
-# ensuite tu fais "shift + alt + fleche du bas" (pour encoder et decoder)
-plt.plot(loss_curve, label = 'loss')
-plt.plot(val_loss_curve, label = 'val_loss')
-plt.legend()
-plt.title("Loss")
-plt.show()
-
-# plt.plot(acc_curve, label = 'acc')
-# plt.plot(val_acc_curve, label = 'val_acc')
-# plt.legend()
-# plt.title("Acc")
-# plt.show()
 
 predictions = []
 for sample in data:
